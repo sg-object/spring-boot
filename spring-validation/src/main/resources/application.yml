@@ -1,0 +1,10 @@
+test:
+  name: test
+  age: 100
+  names:
+    - test
+
+parent:
+  child:
+    name: test
+    age: 10

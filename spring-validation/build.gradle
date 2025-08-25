@@ -1,0 +1,11 @@
+description = 'spring-validation'
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
