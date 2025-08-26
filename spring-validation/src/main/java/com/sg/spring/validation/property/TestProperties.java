@@ -1,4 +1,4 @@
-package com.sg.boot.validation.property;
+package com.sg.spring.validation.property;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

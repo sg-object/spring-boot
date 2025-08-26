@@ -1,2 +1,2 @@
 rootProject.name = 'spring-boot'
-include(':validation')
+include(':spring-validation')

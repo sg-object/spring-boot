@@ -1,4 +1,4 @@
-package com.sg.boot.validation.property;
+package com.sg.spring.validation.property;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;

@@ -1,4 +1,4 @@
-description = 'validation'
+description = 'spring-validation'
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
@@ -7,6 +7,5 @@ dependencies {
 }
 
 tasks.named('test') {
-    enabled = false
-    // useJUnitPlatform()
+    useJUnitPlatform()
 }
