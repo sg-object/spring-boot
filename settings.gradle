@@ -1,2 +1,3 @@
 rootProject.name = 'spring-boot'
+include(':spring-security')
 include(':spring-validation')
