@@ -103,7 +103,7 @@ public class FilterChainProxy extends GenericFilterBean {
 
 ## @EnableWebSecurity
 * Spring Security의 웹 보안 기능을 활성화하고, 사용자 정의 보안 설정을 적용할 수 있도록 SecurityFilterChain을 생성하는 역할
-* Spring Boot의 autoconfigure package의 **SpringBootWebSecurityConfiguration.WebSecurityEnablerConfiguration** 의 @ConditionalOnClass를 이용해 Project의 dependency에 Spring Security가 존재하면 @EnableWebSecurity를 명시하지 않아도 자동으로 관련 기능들을 등록해줌
+* Spring Boot의 autoconfigure package의 **SpringBootWebSecurityConfiguration.WebSecurityEnablerConfiguration** 의 @ConditionalOnClass를 이용해 Project에 Spring Security 의존성이 활성화되어 있으면 @EnableWebSecurity를 명시하지 않아도 자동으로 관련 기능들을 등록해줌
 ```java
 @Configuration(
   proxyBeanMethods = false
@@ -168,3 +168,26 @@ class DefaultWebSecurityCondition extends AllNestedConditions {
 }
 ```
 * DefaultWebSecurityCondition 내부에 정의한 Beans class의 **@ConditionalOnMissingBean({SecurityFilterChain.class})** 로 사용자가 Filter Chain을 명시했는지 판단
+
+## MultiSecurityFilterChain
+* SecurityFilterChain은 여려개 등록 가능
+* 복수의 SecurityFilterChain 등록 시 각 Chain의 RequestMatcher를 설정해야 됨 (인가 RequestMatcher와 별도)
+* HttpSecurity의 securityMatchers Method를 이용해 Chain의 RequestMatcher를 설정
+* SecurityFilterChain은 등록 순서로 실행되기 때문에 실행 순서를 설정할 때는 @Order를 사용 
+```java
+@Order(1)
+@Bean
+SecurityFilterChain firstChain(final HttpSecurity http) throws Exception {
+  http.securityMatchers(auth -> auth.requestMatchers("/test/**"));
+  http.authorizeHttpRequests(req -> req.requestMatchers("/test/pass").permitAll());
+  return http.build();
+}
+
+@Order(2)
+@Bean
+SecurityFilterChain secondChain(final HttpSecurity http) throws Exception {
+  http.securityMatchers(auth -> auth.requestMatchers("/admin/**"));
+  http.authorizeHttpRequests(req -> req.requestMatchers("/admin/pass").permitAll());
+  return http.build();
+}
+```
