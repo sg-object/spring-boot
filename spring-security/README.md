@@ -191,3 +191,98 @@ SecurityFilterChain secondChain(final HttpSecurity http) throws Exception {
   return http.build();
 }
 ```
+
+## SecurityContextHolder
+* Spring Security에서 현재 사용자의 보안 정보를 저장하고 접근하는 데 사용되는 핵심 클래스
+* Application 전반에서 인증된 사용자 정보를 참조할 수 있게 해주는 **Security Context**를 관리
+* SecurityContextHolder에서 Security Context를 직접 관리하지 않고 SecurityContextHolderStrategy에 위임함
+* Thread와 Security Context 연결 방식에 따라 3가지 전략이 존재
+* MODE_THREADLOCAL : 현재 Thread에서만 사용가능 **(Default)**
+* MODE_INHERITABLETHREADLOCAL : 현재 Thread의 자식 Thread까지 공유
+* MODE_GLOBAL : Application의 모든 Thread에 공유
+```java
+public class SecurityContextHolder {
+  public static final String MODE_THREADLOCAL = "MODE_THREADLOCAL";
+  public static final String MODE_INHERITABLETHREADLOCAL = "MODE_INHERITABLETHREADLOCAL";
+  public static final String MODE_GLOBAL = "MODE_GLOBAL";
+  private static final String MODE_PRE_INITIALIZED = "MODE_PRE_INITIALIZED";
+  public static final String SYSTEM_PROPERTY = "spring.security.strategy";
+  private static String strategyName = System.getProperty("spring.security.strategy");
+  private static SecurityContextHolderStrategy strategy;
+  private static int initializeCount = 0;
+
+  //...
+
+  private static void initializeStrategy() {
+    if ("MODE_PRE_INITIALIZED".equals(strategyName)) {
+      Assert.state(strategy != null, "When using MODE_PRE_INITIALIZED, setContextHolderStrategy must be called with the fully constructed strategy");
+    } else {
+      if (!StringUtils.hasText(strategyName)) {
+        strategyName = "MODE_THREADLOCAL";
+      }
+
+      if (strategyName.equals("MODE_THREADLOCAL")) {
+        strategy = new ThreadLocalSecurityContextHolderStrategy();
+      } else if (strategyName.equals("MODE_INHERITABLETHREADLOCAL")) {
+        strategy = new InheritableThreadLocalSecurityContextHolderStrategy();
+      } else if (strategyName.equals("MODE_GLOBAL")) {
+        strategy = new GlobalSecurityContextHolderStrategy();
+      } else {
+        try {
+          Class<?> clazz = Class.forName(strategyName);
+          Constructor<?> customStrategy = clazz.getConstructor();
+          strategy = (SecurityContextHolderStrategy) customStrategy.newInstance();
+        } catch (Exception var2) {
+          Exception ex = var2;
+          ReflectionUtils.handleReflectionException(ex);
+        }
+
+      }
+    }
+  }
+  
+  //...
+  
+}
+```
+* Spring Security 5.7이후로 SecurityContextPersistenceFilter가 Deprecated 되고 SecurityContextHolderFilter를 사용
+* SecurityContextHolderFilter는 Filter Chain에 자동 추가됨
+* Request를 완료할 때 SecurityContextHolderFilter에서 Security Context를 Clear 처리
+```java
+public class SecurityContextHolderFilter extends GenericFilterBean {
+  private static final String FILTER_APPLIED = SecurityContextHolderFilter.class.getName() + ".APPLIED";
+  private final SecurityContextRepository securityContextRepository;
+  private SecurityContextHolderStrategy securityContextHolderStrategy = SecurityContextHolder.getContextHolderStrategy();
+
+  //...
+
+  public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+    this.doFilter((HttpServletRequest) request, (HttpServletResponse) response, chain);
+  }
+
+  private void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
+    if (request.getAttribute(FILTER_APPLIED) != null) {
+      chain.doFilter(request, response);
+    } else {
+      request.setAttribute(FILTER_APPLIED, Boolean.TRUE);
+      Supplier<SecurityContext> deferredContext = this.securityContextRepository.loadDeferredContext(request);
+
+      try {
+        this.securityContextHolderStrategy.setDeferredContext(deferredContext);
+        chain.doFilter(request, response);
+      } finally {
+        
+        //########################################################
+        this.securityContextHolderStrategy.clearContext();  // Clear 처리
+        //########################################################
+        
+        request.removeAttribute(FILTER_APPLIED);
+      }
+
+    }
+  }
+
+  //...
+  
+}
+```
